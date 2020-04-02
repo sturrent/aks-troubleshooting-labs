@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stress-io
+  labels:
+    app: stress-io
+spec:
+  replicas: 200
+  selector:
+    matchLabels:
+      app: stress-io
+  template:
+    metadata:
+      labels:
+        app: stress-io
+    spec:
+      containers:
+      - name: debian
+        image: sturrent/debian:stress1
+        command: ["/bin/bash"]
+        args: ["-c", "while true; do stress --io 1024 --timeout 900s; done"]
