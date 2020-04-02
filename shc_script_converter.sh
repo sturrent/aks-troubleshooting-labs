@@ -9,8 +9,8 @@ then
     exit 4
 fi
 
-akslabs_SCRIPTS="$(ls ./akslabs_scripts/)"
-if [ -z "$akslabs_SCRIPTS" ]
+AKSLABS_SCRIPTS="$(ls ./akslabs_scripts/)"
+if [ -z "$AKSLABS_SCRIPTS" ]
 then
     echo -e "Error: missing akslabs scripts...\n"
     exit 5
@@ -23,7 +23,7 @@ function convert_to_binary() {
     rm -f ./akslabs_scripts/${SCRIPT_NAME}.x.c > /dev/null 2>&1
 }
 
-for FILE in $(echo "$akslabs_SCRIPTS")
+for FILE in $(echo "$AKSLABS_SCRIPTS")
 do
     convert_to_binary $FILE
 done
