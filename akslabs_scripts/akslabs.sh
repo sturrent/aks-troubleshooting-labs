@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # script name: akslabs.sh
-# Version v0.1.1 20200402
+# Version v0.1.3 20200402
 # Set of tools to deploy AKS troubleshooting labs
 
 # "-l|--lab" Lab scenario to deploy (5 possible options)
@@ -52,7 +52,7 @@ done
 # Variable definition
 SCRIPT_PATH="$( cd "$(dirname "$0")" ; pwd -P )"
 SCRIPT_NAME="$(echo $0 | sed 's|\.\/||g')"
-SCRIPT_VERSION="Version v0.1.1 20200402"
+SCRIPT_VERSION="Version v0.1.3 20200402"
 
 # Funtion definition
 
@@ -67,6 +67,9 @@ function az_login_check () {
 
 # check resource group and cluster
 function check_resourcegroup_cluster () {
+    RESOURCE_GROUP="$1"
+    CLUSTER_NAME="$2"
+
     RG_EXIST=$(az group show -g $RESOURCE_GROUP &>/dev/null; echo $?)
     if [ $RG_EXIST -ne 0 ]
     then
@@ -87,6 +90,9 @@ function check_resourcegroup_cluster () {
 
 # validate cluster exists
 function validate_cluster_exists () {
+    RESOURCE_GROUP="$1"
+    CLUSTER_NAME="$2"
+
     CLUSTER_EXIST=$(az aks show -g $RESOURCE_GROUP -n $CLUSTER_NAME &>/dev/null; echo $?)
     if [ $CLUSTER_EXIST -ne 0 ]
     then
@@ -99,6 +105,8 @@ function validate_cluster_exists () {
 function lab_scenario_1 () {
     CLUTER_NAME=aks-ex1
     RESOURE_GROUP=aks-ex1-rg
+    check_resourcegroup_cluster $RESOURE_GROUP $CLUTER_NAME
+
     echo -e "Deploying cluster for lab1...\n"
     az aks create \
     --resource-group $RESOURE_GROUP \
@@ -109,7 +117,7 @@ function lab_scenario_1 () {
     --tag akslab=${LAB_SCENARIO} \
     -o table
 
-    validate_cluster_exists
+    validate_cluster_exists $RESOURE_GROUP $CLUTER_NAME
 
     echo -e "\n\nPlease wait while we are preparing the environment for you to troubleshoot..."
     az aks get-credentials -g $RESOURE_GROUP -n $CLUTER_NAME --overwrite-existing
@@ -125,6 +133,8 @@ function lab_scenario_1 () {
 function lab_scenario_2 () {
     CLUTER_NAME=aks-ex2
     RESOURE_GROUP=aks-ex2-rg
+    check_resourcegroup_cluster $RESOURE_GROUP $CLUTER_NAME
+
     az aks create \
     --resource-group $RESOURE_GROUP \
     --name $CLUTER_NAME \
@@ -134,7 +144,7 @@ function lab_scenario_2 () {
     --tag l200lab=${LAB_SCENARIO} \
     -o table
 
-    validate_cluster_exists
+    validate_cluster_exists $RESOURE_GROUP $CLUTER_NAME
     
     VM_NAME=testvm1
     VM_RESOURE_GROUP=vm-test-rg
@@ -165,6 +175,8 @@ function lab_scenario_3 () {
     RESOURE_GROUP=aks-ex3-rg
     VNET_NAME=aks-vnet-ex3
     SUBNET_NAME=aks-subnet-ex3
+    check_resourcegroup_cluster $RESOURE_GROUP $CLUTER_NAME
+
     az network vnet create \
     --resource-group $RESOURE_GROUP \
     --name $VNET_NAME \
@@ -195,7 +207,7 @@ function lab_scenario_3 () {
     --tag l200lab=${LAB_SCENARIO} \
     -o table
 
-    validate_cluster_exists
+    validate_cluster_exists $RESOURE_GROUP $CLUTER_NAME
 
     CLUSTER_URI="$(az aks show -g $RESOURCE_GROUP -n $CLUSTER_NAME --query id -o tsv)"
     echo "Cluster deployment failed...\n"
@@ -208,6 +220,7 @@ function lab_scenario_4 () {
     RESOURCE_GROUP=aks-ex4-rg
     VNET_NAME=aks-ex4-vnet
     SUBNET_NAME=aks-ex4-subnet
+    check_resourcegroup_cluster $RESOURE_GROUP $CLUTER_NAME
 
     az network vnet create \
     --resource-group $RESOURCE_GROUP \
@@ -239,8 +252,7 @@ function lab_scenario_4 () {
     --tag l200lab=${LAB_SCENARIO} \
     -o table
 
-    validate_cluster_exists
-
+    validate_cluster_exists $RESOURE_GROUP $CLUTER_NAME
 
     az aks upgrade -g $RESOURCE_GROUP -n $CLUSTER_NAME -k 1.15.10 -y
     echo -e "\n\nCluster in failed state after upgrade...\n"
@@ -251,6 +263,8 @@ function lab_scenario_4 () {
 function lab_scenario_5 () {
     CLUTER_NAME=aks-ex5
     RESOURE_GROUP=aks-ex5-rg1
+    check_resourcegroup_cluster $RESOURE_GROUP $CLUTER_NAME
+
     az aks create \
     --resource-group $RESOURE_GROUP \
     --name $CLUTER_NAME \
@@ -264,7 +278,7 @@ function lab_scenario_5 () {
     --tag l200lab=${LAB_SCENARIO} \
     -o table
 
-    validate_cluster_exists
+    validate_cluster_exists $RESOURE_GROUP $CLUTER_NAME
 
     echo -e "\nCompleting the lab setup..."
     az aks get-credentials -g $RESOURE_GROUP -n $CLUTER_NAME --overwrite-existing
@@ -287,11 +301,8 @@ then
 *\t 4. Cluster failed after upgrade
 *\t 5. Cluster with nodes not ready
 ***************************************************************\n"
-    echo -e '"-g|--resource-group" resource group name
-"-n|--name" AKS cluster name
-"-l|--lab" Lab scenario to deploy (5 possible options)
+    echo -e '""-l|--lab" Lab scenario to deploy (5 possible options)
 "-r|--region" region to create the resources
-"-v|--validate" Validate a particular scenario
 "--version" print version of akslabs
 "-h|--help" help info\n'
 	exit 0
@@ -336,27 +347,22 @@ az_login_check
 
 if [ $LAB_SCENARIO -eq 1 ]
 then
-    check_resourcegroup_cluster
     lab_scenario_1
 
 elif [ $LAB_SCENARIO -eq 2 ]
 then
-    check_resourcegroup_cluster
     lab_scenario_2
 
 elif [ $LAB_SCENARIO -eq 3 ]
 then
-    check_resourcegroup_cluster
     lab_scenario_3
 
 elif [ $LAB_SCENARIO -eq 4 ]
 then
-    check_resourcegroup_cluster
     lab_scenario_4
 
 elif [ $LAB_SCENARIO -eq 5 ]
 then
-    check_resourcegroup_cluster
     lab_scenario_5
 
 else
