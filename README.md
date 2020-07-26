@@ -16,7 +16,7 @@ Run in docker
 akslab tool usage
 ```
 $ akslabs -h
-akslabs usage: akslabs -l <LAB#> [-v|--validate] [-r|--region] [-h|--help] [--version]
+akslabs usage: akslabs -l <LAB#> -u <USER_ALIAS> [-v|--validate] [-r|--region] [-h|--help] [--version]
 
 Here is the list of current labs available:
 
@@ -30,6 +30,7 @@ Here is the list of current labs available:
 
 "-l|--lab" Lab scenario to deploy (5 possible options)
 "-r|--region" region to create the resources
+"-u|--user" User alias to add on the lab name
 "--version" print version of akslabs
 "-h|--help" help info
 ```

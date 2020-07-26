@@ -1,22 +1,24 @@
 #!/bin/bash
 
 # script name: akslabs.sh
-# Version v0.1.3 20200402
+# Version v0.1.4 20200726
 # Set of tools to deploy AKS troubleshooting labs
 
 # "-l|--lab" Lab scenario to deploy (5 possible options)
 # "-r|--region" region to deploy the resources
+# "-u|--user" User alias to add on the lab name
 # "-h|--help" help info
 # "--version" print version
 
 # read the options
-TEMP=`getopt -o g:n:l:r:hv --long resource-group:,name:,lab:,region:,help,validate,version -n 'akslabs.sh' -- "$@"`
+TEMP=`getopt -o g:n:l:r:u:hv --long resource-group:,name:,lab:,region:,user:,help,validate,version -n 'akslabs.sh' -- "$@"`
 eval set -- "$TEMP"
 
 # set an initial value for the flags
 RESOURCE_GROUP=""
 CLUSTER_NAME=""
 LAB_SCENARIO=""
+USER_ALIAS=""
 LOCATION="eastus2"
 VALIDATE=0
 HELP=0
@@ -41,6 +43,10 @@ do
         -r|--region) case "$2" in
             "") shift 2;;
             *) LOCATION="$2"; shift 2;;
+            esac;;
+        -u|--user) case "$2" in
+            "") shift 2;;
+            *) USER_ALIAS="$2"; shift 2;;
             esac;;    
         -v|--validate) VALIDATE=1; shift;;
         --version) VERSION=1; shift;;
@@ -52,7 +58,7 @@ done
 # Variable definition
 SCRIPT_PATH="$( cd "$(dirname "$0")" ; pwd -P )"
 SCRIPT_NAME="$(echo $0 | sed 's|\.\/||g')"
-SCRIPT_VERSION="Version v0.1.3 20200402"
+SCRIPT_VERSION="Version v0.1.4 20200726"
 
 # Funtion definition
 
@@ -103,16 +109,18 @@ function validate_cluster_exists () {
 
 # Lab scenario 1
 function lab_scenario_1 () {
-    CLUTER_NAME=aks-ex1
-    RESOURE_GROUP=aks-ex1-rg
+    CLUTER_NAME=aks-ex1-${USER_ALIAS}
+    RESOURE_GROUP=aks-ex1-rg-${USER_ALIAS}
     check_resourcegroup_cluster $RESOURE_GROUP $CLUTER_NAME
 
     echo -e "Deploying cluster for lab1...\n"
     az aks create \
-    --resource-group $RESOURE_GROUP \
-    --name $CLUTER_NAME \
-    --location $LOCATION \
+    --resource-group $RESOURCE_GROUP \
+    --name $CLUSTER_NAME \
+    --location $LOCATION_NAME \
     --node-count 1 \
+    --node-vm-size Standard_B2s \
+    --node-osdisk-size 50 \
     --generate-ssh-keys \
     --tag akslab=${LAB_SCENARIO} \
     -o table
@@ -122,8 +130,11 @@ function lab_scenario_1 () {
     echo -e "\n\nPlease wait while we are preparing the environment for you to troubleshoot..."
     az aks get-credentials -g $RESOURE_GROUP -n $CLUTER_NAME --overwrite-existing
     SP_ID=$(az aks show -g $RESOURE_GROUP -n $CLUTER_NAME --query servicePrincipalProfile.clientId -o tsv)
+    USER_ID=$(az ad user list --filter "startswith(userPrincipalName,'${USER_ALIAS}@microsoft.com')" -o tsv --query [].objectId)
+    az ad app owner add --id $SP_ID --owner-object-id $USER_ID 
     SP_SECRET=$(az ad sp credential reset --name $SP_ID --query password -o tsv)
     az aks scale -g $RESOURE_GROUP -n $CLUTER_NAME -c 2
+
     CLUSTER_URI="$(az aks show -g $RESOURCE_GROUP -n $CLUSTER_NAME --query id -o tsv)"
     echo -e "Case 1 is ready, cluster not able to scale...\n"
     echo -e "Cluster uri == ${CLUSTER_URI}\n"
@@ -131,8 +142,8 @@ function lab_scenario_1 () {
 
 # Lab scenario 2
 function lab_scenario_2 () {
-    CLUTER_NAME=aks-ex2
-    RESOURE_GROUP=aks-ex2-rg
+    CLUTER_NAME=aks-ex2-${USER_ALIAS}
+    RESOURE_GROUP=aks-ex2-rg-${USER_ALIAS}
     check_resourcegroup_cluster $RESOURE_GROUP $CLUTER_NAME
 
     az aks create \
@@ -147,15 +158,18 @@ function lab_scenario_2 () {
     validate_cluster_exists $RESOURE_GROUP $CLUTER_NAME
     
     VM_NAME=testvm1
-    VM_RESOURE_GROUP=vm-test-rg
+    VM_RESOURE_GROUP=vm-test-rg-${USER_ALIAS}
     MC_RESOURCE_GROUP=$(az aks show -g $RESOURE_GROUP -n $CLUTER_NAME --query nodeResourceGroup -o tsv)
-    SUBNET_ID=$(az network vnet list -g $MC_RESOURCE_GROUP --query '[].subnets[].id' -o tsv)
+    #SUBNET_ID=$(az network vnet list -g $MC_RESOURCE_GROUP --query '[].subnets[].id' -o tsv)
+    SUBNET_NAME=$(az network vnet list -o table | grep $MC_RESOURCE_GROUP | awk '{print $1}')
+    SUBNET_ID=$(az network vnet show -g $MC_RESOURCE_GROUP -n $SUBNET_NAME --query subnets[].id -o tsv)
 
     az group create --name $VM_RESOURE_GROUP --location $LOCATION
     az vm create \
     -g $VM_RESOURE_GROUP \
     -n $VM_NAME \
     --image UbuntuLTS \
+    --size Standard_B1s \
     --subnet $SUBNET_ID \
     --admin-username azureuser \
     --generate-ssh-keys \
@@ -171,10 +185,10 @@ function lab_scenario_2 () {
 
 # Lab scenario 3
 function lab_scenario_3 () {
-    CLUTER_NAME=aks-ex3
-    RESOURE_GROUP=aks-ex3-rg
-    VNET_NAME=aks-vnet-ex3
-    SUBNET_NAME=aks-subnet-ex3
+    CLUTER_NAME=aks-ex3-${USER_ALIAS}
+    RESOURE_GROUP=aks-ex3-rg-${USER_ALIAS}
+    VNET_NAME=aks-vnet-ex3-${USER_ALIAS}
+    SUBNET_NAME=aks-subnet-ex3-${USER_ALIAS}
     check_resourcegroup_cluster $RESOURE_GROUP $CLUTER_NAME
 
     az network vnet create \
@@ -197,7 +211,8 @@ function lab_scenario_3 () {
     --location $LOCATION \
     --kubernetes-version 1.15.7 \
     --node-count 2 \
-    --node-osdisk-size 100 \
+    --node-osdisk-size 50 \
+    --node-vm-size Standard_B2s \
     --network-plugin azure \
     --service-cidr 10.0.0.0/16 \
     --dns-service-ip 10.0.0.10 \
@@ -216,10 +231,10 @@ function lab_scenario_3 () {
 
 # Lab scenario 4
 function lab_scenario_4 () {
-    CLUSTER_NAME=aks-ex4
-    RESOURCE_GROUP=aks-ex4-rg
-    VNET_NAME=aks-ex4-vnet
-    SUBNET_NAME=aks-ex4-subnet
+    CLUSTER_NAME=aks-ex4-${USER_ALIAS}
+    RESOURCE_GROUP=aks-ex4-rg-${USER_ALIAS}
+    VNET_NAME=aks-ex4-vnet-${USER_ALIAS}
+    SUBNET_NAME=aks-ex4-subnet-${USER_ALIAS}
     check_resourcegroup_cluster $RESOURE_GROUP $CLUTER_NAME
 
     az network vnet create \
@@ -239,7 +254,6 @@ function lab_scenario_4 () {
     --name $CLUSTER_NAME \
     --location $LOCATION \
     --node-count 2 \
-    --kubernetes-version 1.15.7 \
     --vm-set-type AvailabilitySet \
     --load-balancer-sku basic \
     --max-pods 100 \
@@ -254,15 +268,15 @@ function lab_scenario_4 () {
 
     validate_cluster_exists $RESOURE_GROUP $CLUTER_NAME
 
-    az aks upgrade -g $RESOURCE_GROUP -n $CLUSTER_NAME -k 1.15.10 -y
+    az aks upgrade -g $RESOURCE_GROUP -n $CLUSTER_NAME -y
     echo -e "\n\nCluster in failed state after upgrade...\n"
     echo -e "\nCluster uri == ${CLUSTER_URI}\n"
 }
 
 # Lab scenario 5
 function lab_scenario_5 () {
-    CLUTER_NAME=aks-ex5
-    RESOURE_GROUP=aks-ex5-rg1
+    CLUTER_NAME=aks-ex5-${USER_ALIAS}
+    RESOURE_GROUP=aks-ex5-rg1-${USER_ALIAS}
     check_resourcegroup_cluster $RESOURE_GROUP $CLUTER_NAME
 
     az aks create \
@@ -292,7 +306,7 @@ function lab_scenario_5 () {
 #if -h | --help option is selected usage will be displayed
 if [ $HELP -eq 1 ]
 then
-	echo -e "akslabs usage: akslabs -l <LAB#> [-v|--validate] [-r|--region] [-h|--help] [--version]\n"
+	echo -e "akslabs usage: akslabs -l <LAB#> -u <USER_ALIAS>[-v|--validate] [-r|--region] [-h|--help] [--version]\n"
     echo -e "\nHere is the list of current labs available:\n
 ***************************************************************
 *\t 1. Scale action failed (SP issues)
@@ -316,7 +330,7 @@ fi
 
 if [ -z $LAB_SCENARIO ]; then
 	echo -e "Error: Lab scenario value must be provided. \n"
-	echo -e "akslabs usage: akslabs -l <LAB#> [-v|--validate] [-r|--region] [-h|--help] [--version]\n"
+	echo -e "akslabs usage: akslabs -l <LAB#> -u <USER_ALIAS>[-v|--validate] [-r|--region] [-h|--help] [--version]\n"
     echo -e "\nHere is the list of current labs available:\n
 ***************************************************************
 *\t 1. Scale action failed (SP issues)
@@ -328,11 +342,25 @@ if [ -z $LAB_SCENARIO ]; then
 	exit 9
 fi
 
+if [ -z $USER_ALIAS ]; then
+	echo -e "Error: User alias value must be provided. \n"
+	echo -e "akslabs usage: akslabs -l <LAB#> -u <USER_ALIAS>[-v|--validate] [-r|--region] [-h|--help] [--version]\n"
+    echo -e "\nHere is the list of current labs available:\n
+***************************************************************
+*\t 1. Scale action failed (SP issues)
+*\t 2. Cluster failed to delete
+*\t 3. Cluster deployment failed
+*\t 4. Cluster failed after upgrade
+*\t 5. Cluster with nodes not ready
+***************************************************************\n"
+	exit 10
+fi
+
 # lab scenario has a valid option
 if [[ ! $LAB_SCENARIO =~ ^[1-5]+$ ]];
 then
     echo -e "\nError: invalid value for lab scenario '-l $LAB_SCENARIO'\nIt must be value from 1 to 5\n"
-    exit 10
+    exit 11
 fi
 
 # main
@@ -367,7 +395,7 @@ then
 
 else
     echo -e "\nError: no valid option provided\n"
-    exit 11
+    exit 12
 fi
 
 exit 0
