@@ -26,6 +26,8 @@ Here is the list of current labs available:
 *        3. Cluster deployment failed
 *        4. Cluster failed after upgrade
 *        5. Cluster with nodes not ready
+*        6. Cluster with subnet issues
+*        7. Cluster with tunnel issues
 ***************************************************************
 
 "-l|--lab" Lab scenario to deploy (5 possible options)
