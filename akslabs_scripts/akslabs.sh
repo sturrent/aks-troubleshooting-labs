@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # script name: akslabs.sh
-# Version v0.1.5 20200726
+# Version v0.1.6 20200726
 # Set of tools to deploy AKS troubleshooting labs
 
 # "-l|--lab" Lab scenario to deploy (5 possible options)
@@ -58,7 +58,7 @@ done
 # Variable definition
 SCRIPT_PATH="$( cd "$(dirname "$0")" ; pwd -P )"
 SCRIPT_NAME="$(echo $0 | sed 's|\.\/||g')"
-SCRIPT_VERSION="Version v0.1.5 20200726"
+SCRIPT_VERSION="Version v0.1.6 20200726"
 
 # Funtion definition
 
@@ -110,7 +110,7 @@ function validate_cluster_exists () {
     CLUSTER_EXIST=$(az aks show -g $RESOURCE_GROUP -n $CLUSTER_NAME &>/dev/null; echo $?)
     if [ $CLUSTER_EXIST -ne 0 ]
     then
-        echo -e "\nERROR: Fail to create cluster $CLUSTER_NAME in resource group $RESOURCE_GROUP ...\n"
+        echo -e "\nERROR: Failed to create cluster $CLUSTER_NAME in resource group $RESOURCE_GROUP ...\n"
         exit 5
     fi
 }
@@ -376,7 +376,7 @@ function lab_scenario_7 () {
     --tag akslab=${LAB_SCENARIO} \
     -o table
 
-    validate_cluster_exists
+    validate_cluster_exists $RESOURCE_GROUP $CLUSTER_NAME
     
     NODE_RESOURCE_GROUP="$(az aks show -g $RESOURCE_GROUP -n $CLUSTER_NAME --query nodeResourceGroup -o tsv)"
     echo -e "\n\nPlease wait while we are preparing the environment for you to troubleshoot..."
