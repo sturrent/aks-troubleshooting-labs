@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # script name: akslabs.sh
-# Version v0.1.7 20200730
+# Version v0.1.8 20200730
 # Set of tools to deploy AKS troubleshooting labs
 
 # "-l|--lab" Lab scenario to deploy (5 possible options)
@@ -58,7 +58,7 @@ done
 # Variable definition
 SCRIPT_PATH="$( cd "$(dirname "$0")" ; pwd -P )"
 SCRIPT_NAME="$(echo $0 | sed 's|\.\/||g')"
-SCRIPT_VERSION="Version v0.1.7 20200730"
+SCRIPT_VERSION="Version v0.1.8 20200730"
 
 # Funtion definition
 
