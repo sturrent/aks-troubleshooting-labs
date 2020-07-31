@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # script name: akslabs.sh
-# Version v0.1.8 20200730
+# Version v0.1.9 20200731
 # Set of tools to deploy AKS troubleshooting labs
 
 # "-l|--lab" Lab scenario to deploy (5 possible options)
@@ -58,24 +58,16 @@ done
 # Variable definition
 SCRIPT_PATH="$( cd "$(dirname "$0")" ; pwd -P )"
 SCRIPT_NAME="$(echo $0 | sed 's|\.\/||g')"
-SCRIPT_VERSION="Version v0.1.8 20200730"
+SCRIPT_VERSION="Version v0.1.9 20200731"
 
 # Funtion definition
 
 # az login check
 function az_login_check () {
-    MyAzureAccount="93d4f56f-2ef0-42e5-a4d1-0d485dd0ca93"
     if $(az account list 2>&1 | grep -q 'az login')
     then
         echo -e "\nError: You have to login first with the 'az login' command before you can run this lab tool\n"
         az login -o table
-    fi
-    if $(az account list -o table | grep -q "$MyAzureAccount")
-    then
-        az account set -s $MyAzureAccount -o table
-    else
-        echo -e "\nError: your Azure user is missing the shared account MyAzureAccount...\n"
-        exit 4
     fi
 }
 
@@ -471,7 +463,7 @@ fi
 echo -e "\nAKS Troubleshooting sessions
 ********************************************
 
-This tool will use the shared internal azure account MyAzureAccount to deploy the lab environments.
+This tool will use your default subscription to deploy the lab environments.
 Verifing if you are authenticated already...\n"
 
 # Verify az cli has been authenticated
