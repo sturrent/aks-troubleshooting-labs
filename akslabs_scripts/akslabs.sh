@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # script name: akslabs.sh
-# Version v0.1.6 20200726
+# Version v0.1.7 20200730
 # Set of tools to deploy AKS troubleshooting labs
 
 # "-l|--lab" Lab scenario to deploy (5 possible options)
@@ -58,7 +58,7 @@ done
 # Variable definition
 SCRIPT_PATH="$( cd "$(dirname "$0")" ; pwd -P )"
 SCRIPT_NAME="$(echo $0 | sed 's|\.\/||g')"
-SCRIPT_VERSION="Version v0.1.6 20200726"
+SCRIPT_VERSION="Version v0.1.7 20200730"
 
 # Funtion definition
 
@@ -217,7 +217,6 @@ function lab_scenario_3 () {
     --resource-group $RESOURCE_GROUP \
     --name $CLUSTER_NAME \
     --location $LOCATION \
-    --kubernetes-version 1.15.7 \
     --node-count 2 \
     --node-osdisk-size 50 \
     --node-vm-size Standard_B2s \
