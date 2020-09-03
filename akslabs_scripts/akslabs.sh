@@ -133,6 +133,7 @@ function lab_scenario_1 () {
     USER_ID=$(az ad user list --filter "startswith(userPrincipalName,'${USER_ALIAS}@microsoft.com')" -o tsv --query [].objectId)
     az ad app owner add --id $SP_ID --owner-object-id $USER_ID 
     SP_SECRET=$(az ad sp credential reset --name $SP_ID --query password -o tsv)
+    sleep 30s
     az aks scale -g $RESOURCE_GROUP -n $CLUSTER_NAME -c 2
 
     CLUSTER_URI="$(az aks show -g $RESOURCE_GROUP -n $CLUSTER_NAME --query id -o tsv)"
