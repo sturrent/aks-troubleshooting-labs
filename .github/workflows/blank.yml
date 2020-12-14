@@ -23,12 +23,12 @@ jobs:
     - name: Login to Docker Registry
       run: echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
     - name: Get the version
-      run: echo ::set-env name=TAG_ID::$(echo ${GITHUB_REF:10})
+      run: echo TAG_ID=${GITHUB_REF:10} >> $GITHUB_ENV
     - name: Build the tagged Docker image
-      run: docker build . --file Dockerfile -t sturrent/akslabs:"${{ env.TAG_ID }}"
+      run: docker build . --file Dockerfile -t sturrent/akslabs:"${TAG_ID}"
     - name: Push the tagged Docker image
-      run: docker push sturrent/akslabs:"${{ env.TAG_ID }}"
+      run: docker push sturrent/akslabs:"${TAG_ID}"
     - name: Tag the latest Docker image
-      run: docker tag sturrent/akslabs:"${{ env.TAG_ID }}" sturrent/akslabs:latest
+      run: docker tag sturrent/akslabs:"${TAG_ID}" sturrent/akslabs:latest
     - name: Push the latest Docker image
       run: docker push sturrent/akslabs:latest
