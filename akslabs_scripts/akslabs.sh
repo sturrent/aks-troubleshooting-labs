@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # script name: akslabs.sh
-# Version v0.1.10 20200903
+# Version v0.1.11 20210215
 # Set of tools to deploy AKS troubleshooting labs
 
 # "-l|--lab" Lab scenario to deploy (5 possible options)
@@ -58,7 +58,7 @@ done
 # Variable definition
 SCRIPT_PATH="$( cd "$(dirname "$0")" ; pwd -P )"
 SCRIPT_NAME="$(echo $0 | sed 's|\.\/||g')"
-SCRIPT_VERSION="Version v0.1.10 20200903"
+SCRIPT_VERSION="Version v0.1.11 20210215"
 
 # Funtion definition
 
@@ -255,8 +255,6 @@ function lab_scenario_4 () {
     --name $CLUSTER_NAME \
     --location $LOCATION \
     --node-count 2 \
-    --vm-set-type AvailabilitySet \
-    --load-balancer-sku basic \
     --max-pods 100 \
     --network-plugin azure \
     --service-cidr 10.0.0.0/16 \
@@ -268,8 +266,10 @@ function lab_scenario_4 () {
     -o table
 
     validate_cluster_exists $RESOURCE_GROUP $CLUSTER_NAME
-
-    az aks upgrade -g $RESOURCE_GROUP -n $CLUSTER_NAME -y
+    
+    NEXT_VERSION="$(az aks get-upgrades -g $RESOURCE_GROUP -n $CLUSTER_NAME --query controlPlaneProfile.upgrades -o tsv | head -1 | awk '{print $2}')"
+    CLUSTER_URI="$(az aks show -g $RESOURCE_GROUP -n $CLUSTER_NAME --query id -o tsv)"
+    az aks upgrade -g $RESOURCE_GROUP -n $CLUSTER_NAME -k $NEXT_VERSION -y
     echo -e "\n\nCluster in failed state after upgrade...\n"
     echo -e "\nCluster uri == ${CLUSTER_URI}\n"
 }
@@ -408,7 +408,7 @@ then
 *\t 6. Cluster with subnet issues
 *\t 7. Cluster with tunnel issues
 ***************************************************************\n"
-    echo -e '""-l|--lab" Lab scenario to deploy (5 possible options)
+    echo -e '"-l|--lab" Lab scenario to deploy (7 possible options)
 "-r|--region" region to create the resources
 "--version" print version of akslabs
 "-h|--help" help info\n'
